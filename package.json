@@ -1,5 +1,5 @@
 {
-  "name": "my-vite",
+  "name": "plain-text-notebook-thing",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,18 +11,35 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.2",
+    "@engraft/shared": "^0.0.8",
+    "@engraft/update-proxy": "^0.0.8",
+    "@observablehq/framework": "^1.12.0",
+    "@observablehq/runtime": "^6.0.0",
+    "@observablehq/stdlib": "^5.8.8",
+    "codemirror": "^6.0.1",
+    "crypto-js": "^4.2.0",
+    "idb-keyval": "^6.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "6.22.1"
+    "react-inspector": "^6.0.2",
+    "react-merge-refs": "^2.1.1",
+    "react-router-dom": "6.22.1",
+    "react-select": "^5.8.2"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "1.7.0",
     "@tailwindcss/typography": "0.5.12",
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
+    "@types/wicg-file-system-access": "^2023.10.5",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^2.1.4",
     "autoprefixer": "10.4.19",
     "eslint": "^8.56.0",
     "eslint-config-react-app": "7.0.1",
@@ -31,6 +48,8 @@
     "prettier-plugin-organize-imports": "^4.0.0",
     "tailwindcss": "3.4.3",
     "typescript": "^5.2.2",
-    "vite": "^5.1.0"
+    "vite": "^5.1.0",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vitest": "2.1.4"
   }
 }
