@@ -1,15 +1,43 @@
 import { javascript } from "@codemirror/lang-javascript";
 import { DOM } from "@engraft/shared/lib/DOM";
 import * as IDBKV from "idb-keyval";
+import MarkdownIt from "markdown-it";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { ObjectInspector } from "react-inspector";
+import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
 import { FrameworkishNotebook, NotebookState } from "./of-main";
-import { ControlledCodeMirror } from "./shared";
 import useInterval from "./useInterval";
 
 // note that @types/wicg-file-system-access must be installed for
 // window.showOpenFilePicker to be well-typed; there doesn't seem to
 // be a way to enforce this :/
+
+export function createMarkdownIt({
+  markdownIt,
+  linkify = true,
+  quotes = "“”‘’",
+  typographer = false,
+}: {
+  markdownIt?: (md: MarkdownIt) => MarkdownIt;
+  linkify?: boolean;
+  quotes?: string | string[];
+  typographer?: boolean;
+} = {}): MarkdownIt {
+  const md = MarkdownIt({ html: true, linkify, typographer, quotes });
+  if (linkify) {
+    md.linkify.set({ fuzzyLink: false, fuzzyEmail: false });
+  }
+  // md.use(MarkdownItAnchor, { slugify: (s) => slugify(s) });
+  // md.inline.ruler.push("placeholder", transformPlaceholderInline);
+  // md.core.ruler.after("inline", "placeholder", transformPlaceholderCore);
+  // md.renderer.rules.placeholder = makePlaceholderRenderer();
+  // md.renderer.rules.fence = makeFenceRenderer(md.renderer.rules.fence!);
+  // md.renderer.rules.softbreak = makeSoftbreakRenderer(
+  //   md.renderer.rules.softbreak!,
+  // );
+  return markdownIt === undefined ? md : markdownIt(md);
+}
+
+const md = createMarkdownIt();
 
 const jsExtensions = [javascript()];
 
@@ -44,25 +72,30 @@ export const Files = memo(() => {
           }`}
         </style>
         <FileSelector fileHandle={fileHandle} setFileHandle={setFileHandle} />
-        <h1>test</h1>
-        <div className="flex flex-row gap-24 w-full">
-          <div className="w-1/3">
-            <ControlledCodeMirror value={code} extensions={jsExtensions} />
-          </div>
-          <div className="w-1/3">
-            {notebookState.cells.map(({ id, code }) => {
+        <div className="w-full">
+          {notebookState.cells.map(({ id, code }) => {
+            const state = notebookState.cellStates[id];
+            if (state.type === "markdown") {
+              return (
+                <div
+                  key={id}
+                  dangerouslySetInnerHTML={{
+                    __html: md.render(state.markdown),
+                  }}
+                />
+              );
+            } else {
               return (
                 <div key={id} className="mb-10">
                   {/* <h4>{id}</h4> */}
                   <pre>{code}</pre>
-                  <ObjectInspector
-                    data={notebookState.cellStates[id]}
-                    expandLevel={10}
-                  />
+                  {state.displays.map((display, i) => (
+                    <Display key={i} value={display} />
+                  ))}
                 </div>
               );
-            })}
-          </div>
+            }
+          })}
         </div>
       </div>
     </div>
@@ -73,7 +106,7 @@ function Display({ value }: { value: unknown }) {
   if (isNode(value)) {
     return <DOM element={value as any} />;
   } else {
-    return <ObjectInspector data={value} expandLevel={10} />;
+    return <ObservableInspector value={value} />;
   }
 }
 
@@ -138,7 +171,7 @@ export const FileSelector = memo(
     }, [setFileHandle]);
 
     return (
-      <div>
+      <div className="flex flex-row gap-12 mb-12">
         {initialFileHandle && (
           <button
             onClick={onClickReload}
@@ -153,7 +186,7 @@ export const FileSelector = memo(
         >
           Open File
         </button>
-        {fileHandle ? <pre>{fileHandle.name}</pre> : "No file selected"}
+        {fileHandle ? fileHandle.name : "No file selected"}
       </div>
     );
   },

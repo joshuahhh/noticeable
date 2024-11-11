@@ -22,11 +22,19 @@ export type ObservableState =
   | { type: "fulfilled"; value: unknown }
   | { type: "rejected"; error: unknown };
 
-export type CellState = {
-  variableState: ObservableState;
-  displays: unknown[];
-};
+export type CellState =
+  | {
+      type: "code";
+      variableState: ObservableState;
+      displays: unknown[];
+    }
+  | {
+      type: "markdown";
+      markdown: string;
+    };
 
+// this is the information returned by the FrameworkishNotebook to
+// its client via the setNotebookState callback
 export type NotebookState = {
   cells: { id: string; code: string }[];
   cellStates: { [id: string]: CellState };
@@ -60,11 +68,6 @@ export class FrameworkishNotebook {
     this.notebookStateUP.cells.$set(codesWithIds);
 
     const newCodes = new Map(codesWithIds.map((c) => [c.id, c.code]));
-    // current problem... if a cell doesn't parse correctly, we don't
-    // actually want to include it in newCodes, if we're following
-    // the Framework's approach anyway, we want to pretend like it
-    // doesn't exist. seems like a reasonable approach! but requires
-    // some rejiggering here...
     const { removedIds, addedIds } = diffCodes(this.oldCodes, newCodes);
     this.oldCodes = newCodes;
 
@@ -74,27 +77,38 @@ export class FrameworkishNotebook {
 
     for (const id of addedIds) {
       this.notebookStateUP.cellStates[id].$set({
+        type: "code",
         variableState: { type: "pending" },
         displays: [],
       });
       try {
         const cell = codesWithIds.find((c) => c.id === id)!;
-        const parsed = parseJavaScript(cell.code, { path: "SOMEPATH" });
-        const transpiled = transpileToDef(parsed);
-        const compiled = compileExpression(transpiled.code) as any;
-        this.define({
-          id,
-          body: compiled,
-          inputs: transpiled.inputs,
-          outputs: transpiled.outputs,
-        });
+        const lines = cell.code.split("\n");
+        if (lines.every((line) => line.startsWith("//"))) {
+          // TODO: crude comment detection & stripping
+          const markdown = lines.map((line) => line.slice(2).trim()).join("\n");
+          this.notebookStateUP.cellStates[id].$set({
+            type: "markdown",
+            markdown,
+          });
+        } else {
+          const parsed = parseJavaScript(cell.code, { path: "SOMEPATH" });
+          const transpiled = transpileToDef(parsed);
+          const compiled = compileExpression(transpiled.code) as any;
+          this.define({
+            id,
+            body: compiled,
+            inputs: transpiled.inputs,
+            outputs: transpiled.outputs,
+          });
+        }
       } catch (e) {
-        this.setState(id, { type: "rejected", error: e });
+        this.setVariableState(id, { type: "rejected", error: e });
       }
     }
   }
 
-  setState(id: string, state: ObservableState) {
+  setVariableState(id: string, state: ObservableState) {
     if (!this.cellsById.has(id)) {
       // TODO: why is this happening; can we have this not happen?
       console.log("cell was removed before it was fulfilled");
@@ -117,9 +131,11 @@ export class FrameworkishNotebook {
     // TODO: used to have _node for visibility promise
     const v = this.main.variable(
       {
-        fulfilled: (value) => this.setState(id, { type: "fulfilled", value }),
-        rejected: (error) => this.setState(id, { type: "rejected", error }),
-        pending: () => this.setState(id, { type: "pending" }),
+        fulfilled: (value) =>
+          this.setVariableState(id, { type: "fulfilled", value }),
+        rejected: (error) =>
+          this.setVariableState(id, { type: "rejected", error }),
+        pending: () => this.setVariableState(id, { type: "pending" }),
       },
       { shadow: {} },
     );
@@ -134,13 +150,14 @@ export class FrameworkishNotebook {
           if (version < displayVersion) {
             throw new Error("stale display");
           } else if (version > displayVersion) {
-            this.notebookStateUP.cellStates[id].displays.$set([]);
+            this.notebookStateUP.cellStates[id]
+              .$as<CellState & { type: "code" }>()
+              .displays.$set([]);
           }
           displayVersion = version;
-          this.notebookStateUP.cellStates[id].displays.$((old) => [
-            ...old,
-            value,
-          ]);
+          this.notebookStateUP.cellStates[id]
+            .$as<CellState & { type: "code" }>()
+            .displays.$((old) => [...old, value]);
           return value;
         };
       });
