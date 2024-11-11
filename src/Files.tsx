@@ -1,10 +1,19 @@
-import { javascript } from "@codemirror/lang-javascript";
 import { DOM } from "@engraft/shared/lib/DOM";
+import hljs from "highlight.js";
 import * as IDBKV from "idb-keyval";
 import MarkdownIt from "markdown-it";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  isValidElement,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useChangingValue } from "./ChangingValue";
 import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
-import { FrameworkishNotebook, NotebookState } from "./of-main";
+import { CellState, FrameworkishNotebook } from "./of-main";
 import useInterval from "./useInterval";
 
 // note that @types/wicg-file-system-access must be installed for
@@ -39,19 +48,18 @@ export function createMarkdownIt({
 
 const md = createMarkdownIt();
 
-const jsExtensions = [javascript()];
-
 export const Files = memo(() => {
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle>();
 
-  const [notebookState, setNotebookState] = useState<NotebookState>({
-    cells: [],
-    cellStates: {},
-  });
+  const nbRef = useRef(new FrameworkishNotebook());
 
-  const nbRef = useRef(new FrameworkishNotebook(setNotebookState));
+  const notebookState = useChangingValue(
+    nbRef.current.notebookStateChangingValue,
+  );
 
   const code = useFileContents(fileHandle) || "";
+
+  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     nbRef.current.setNotebookCode(code);
@@ -64,18 +72,25 @@ export const Files = memo(() => {
           rel="stylesheet"
           href="http://localhost:3000/_observablehq/theme-air,near-midnight.css"
         />
-        <style>
-          {/* TODO: tailwind is overwriting default styles which observable expects */}
-          {`h1 {
-            font-size: 2em;
-            font-weight: 700;
-          }`}
-        </style>
-        <FileSelector fileHandle={fileHandle} setFileHandle={setFileHandle} />
-        <div className="w-full">
+        <div className="flex flex-row gap-12">
+          <FileSelector fileHandle={fileHandle} setFileHandle={setFileHandle} />
+          {/* checkbox for debug mode */}
+          <label>
+            <input
+              type="checkbox"
+              checked={debugMode}
+              onChange={(e) => {
+                setDebugMode(e.target.checked);
+              }}
+              className="mr-2"
+            />
+            debug mode
+          </label>
+        </div>
+        <div className="w-full no-twp">
           {notebookState.cells.map(({ id, code }) => {
-            const state = notebookState.cellStates[id];
-            if (state.type === "markdown") {
+            const state = notebookState.cellStates[id] as CellState | undefined;
+            if (state?.type === "markdown") {
               return (
                 <div
                   key={id}
@@ -86,13 +101,38 @@ export const Files = memo(() => {
               );
             } else {
               return (
-                <div key={id} className="mb-10">
-                  {/* <h4>{id}</h4> */}
-                  <pre>{code}</pre>
-                  {state.displays.map((display, i) => (
-                    <Display key={i} value={display} />
-                  ))}
-                </div>
+                <Fragment key={id}>
+                  {debugMode && (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-row gap-4">
+                        <div>{id}</div>
+                        <div>
+                          <ObservableInspector value={state} />
+                        </div>
+                      </div>
+                      {state && <pre>{state.transpiled}</pre>}
+                    </div>
+                  )}
+                  <div className="observablehq-pre-container">
+                    <pre
+                      dangerouslySetInnerHTML={{
+                        __html: hljs.highlight(code, { language: "tsx" }).value,
+                      }}
+                    />
+                  </div>
+                  {state && (
+                    <>
+                      {state.variableState.type === "rejected" && (
+                        <ObservableInspector
+                          error={state.variableState.error}
+                        />
+                      )}
+                      {state.displays.map((display, i) => (
+                        <Display key={i} value={display} />
+                      ))}
+                    </>
+                  )}
+                </Fragment>
               );
             }
           })}
@@ -105,6 +145,8 @@ export const Files = memo(() => {
 function Display({ value }: { value: unknown }) {
   if (isNode(value)) {
     return <DOM element={value as any} />;
+  } else if (isValidElement(value)) {
+    return value;
   } else {
     return <ObservableInspector value={value} />;
   }
@@ -177,14 +219,14 @@ export const FileSelector = memo(
             onClick={onClickReload}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
-            Reload
+            reload
           </button>
         )}
         <button
           onClick={onClickOpenFile}
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-          Open File
+          open file
         </button>
         {fileHandle ? fileHandle.name : "No file selected"}
       </div>

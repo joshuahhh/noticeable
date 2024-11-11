@@ -6,6 +6,7 @@ import { Files } from "./Files.js";
 import { ParseAndTranspile } from "./ParseAndTranspile.js";
 import { Root } from "./Root.js";
 import "./index.css";
+import "./of/client/stdlib/inputs.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

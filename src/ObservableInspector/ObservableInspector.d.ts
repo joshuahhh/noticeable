@@ -1,6 +1,7 @@
-declare module '@observablehq/inspector' {
+declare module "@observablehq/inspector" {
   export class Inspector {
-    constructor(elem: HTMLElement)
-    fulfilled(value: any): void
+    constructor(elem: HTMLElement);
+    fulfilled(value: any): void;
+    rejected(value: any): void;
   }
 }

@@ -1,13 +1,25 @@
 import { UpdateProxy, updateProxy } from "@engraft/update-proxy";
 import { Runtime, Variable } from "@observablehq/runtime";
 import { Library } from "@observablehq/stdlib";
+import * as React from "react";
+import { ChangeableValue, ChangingValue } from "./ChangingValue";
 import { codeCells } from "./code-cells";
+import { transformJavaScript } from "./of/javascript/module2";
 import { JavaScriptNode, parseJavaScript } from "./of/javascript/parse";
 import { Sourcemap } from "./of/sourcemap";
 import { assignIds, compileExpression } from "./shared";
+// @ts-ignore
+import { Mutable } from "./of/client/stdlib/mutable";
 
 const library = new Library();
-export const runtime = new Runtime(library);
+export const runtime = new Runtime({
+  ...library,
+  React,
+  // version in Library is out of date
+  Mutable: () => Mutable,
+});
+
+const Generators = library.Generators;
 
 type FrameworkishNotebookCell = {
   id: string;
@@ -27,6 +39,7 @@ export type CellState =
       type: "code";
       variableState: ObservableState;
       displays: unknown[];
+      transpiled?: string;
     }
   | {
       type: "markdown";
@@ -41,35 +54,45 @@ export type NotebookState = {
 };
 
 export class FrameworkishNotebook {
+  // internal stuff
   main = runtime.module();
-  cellsById = new Map<
-    string,
-    {
-      cell: FrameworkishNotebookCell;
-      // we keep track of the variables so we can delete them later
-      variables: Variable[];
-    }
-  >();
+  variablesById = new Map<string, Variable[]>(); // for cleanup
   oldCodes = new Map<string, string>();
-  notebookStateUP: UpdateProxy<NotebookState>;
 
-  constructor(
-    public setNotebookState: (
-      updater: (states: NotebookState) => NotebookState,
-    ) => void,
-  ) {
-    this.notebookStateUP = updateProxy(this.setNotebookState);
+  // external stuff
+  private notebookState: ChangeableValue<NotebookState> = new ChangeableValue({
+    cells: [],
+    cellStates: {},
+  });
+  get notebookStateChangingValue(): ChangingValue<NotebookState> {
+    return this.notebookState;
   }
+  notebookStateUP: UpdateProxy<NotebookState> = updateProxy(
+    (f) => (this.notebookState.value = f(this.notebookState.value)),
+  );
 
-  setNotebookCode(code: string) {
+  async setNotebookCode(code: string) {
     const codes = codeCells(code).map((cell) => cell.code);
     const codesWithIds = assignIds(codes);
-
-    this.notebookStateUP.cells.$set(codesWithIds);
 
     const newCodes = new Map(codesWithIds.map((c) => [c.id, c.code]));
     const { removedIds, addedIds } = diffCodes(this.oldCodes, newCodes);
     this.oldCodes = newCodes;
+
+    // TODO: we do all the async stuff ahead of time so that there's
+    // no async gap with undefining and defining vars; this seems
+    // inelegant to me
+    const transformedPromises = addedIds.map((id) => {
+      const cell = codesWithIds.find((c) => c.id === id)!;
+      return transformJavaScript(cell.code, "tsx", "SOMEPATH");
+    });
+    const transformedResults = await Promise.allSettled(transformedPromises);
+    const transformedResultsById = Object.fromEntries(
+      transformedResults.map((r, i) => [addedIds[i], r]),
+    );
+
+    // and we do this after the async stuff
+    this.notebookStateUP.cells.$set(codesWithIds);
 
     for (const id of removedIds) {
       this.undefine(id);
@@ -92,8 +115,16 @@ export class FrameworkishNotebook {
             markdown,
           });
         } else {
-          const parsed = parseJavaScript(cell.code, { path: "SOMEPATH" });
+          const transformedResult = transformedResultsById[id];
+          if (transformedResult.status === "rejected") {
+            throw transformedResult.reason;
+          }
+          const transformed = transformedResult.value;
+          // to accommodate trailing semicolons added by prettier...
+          const trimmed = transformed.trimEnd().replace(/;$/, "");
+          const parsed = parseJavaScript(trimmed, { path: "SOMEPATH" });
           const transpiled = transpileToDef(parsed);
+          this.notebookStateUP.cellStates[id].transpiled.$set(transpiled.code);
           const compiled = compileExpression(transpiled.code) as any;
           this.define({
             id,
@@ -109,7 +140,7 @@ export class FrameworkishNotebook {
   }
 
   setVariableState(id: string, state: ObservableState) {
-    if (!this.cellsById.has(id)) {
+    if (!this.notebookState.value.cellStates[id]) {
       // TODO: why is this happening; can we have this not happen?
       console.log("cell was removed before it was fulfilled");
       return;
@@ -120,7 +151,7 @@ export class FrameworkishNotebook {
   define(cell: FrameworkishNotebookCell) {
     const { id, inputs = [], outputs = [], body } = cell;
     const variables: Variable[] = [];
-    this.cellsById.set(id, { cell, variables });
+    this.variablesById.set(id, variables);
     // const loading = findLoading(root);
     // root._nodes = [];
     // if (mode === undefined) root._expanded = []; // only blocks have inspectors
@@ -140,28 +171,43 @@ export class FrameworkishNotebook {
       { shadow: {} },
     );
     // TODO: { pending, rejected }
-    if (inputs.includes("display")) {
+    if (inputs.includes("display") || inputs.includes("view")) {
       let displayVersion = -1; // the variable._version of currently-displayed values
       const vd = new v.constructor(2, v._module);
-      vd.define([], () => {
-        let version = (v as any)._version; // capture version on input change
-        return (value: unknown) => {
-          console.log("display", id, value);
-          if (version < displayVersion) {
-            throw new Error("stale display");
-          } else if (version > displayVersion) {
+      vd.define(
+        inputs.filter((i) => i !== "display" && i !== "view"),
+        () => {
+          // TODO: IDK why OF has those inputs above and then defines
+          // `version` here, rather than defining `version` inside
+          // the body of `display`?
+          let version = (v as any)._version; // capture version on input change
+          return (value: unknown) => {
+            console.log("display", id, version, displayVersion);
+            if (version < displayVersion) {
+              throw new Error("stale display");
+            } else if (version > displayVersion) {
+              this.notebookStateUP.cellStates[id]
+                .$as<CellState & { type: "code" }>()
+                .displays.$set([]);
+            }
+            displayVersion = version;
             this.notebookStateUP.cellStates[id]
               .$as<CellState & { type: "code" }>()
-              .displays.$set([]);
-          }
-          displayVersion = version;
-          this.notebookStateUP.cellStates[id]
-            .$as<CellState & { type: "code" }>()
-            .displays.$((old) => [...old, value]);
-          return value;
-        };
-      });
+              .displays.$((old) => [...old, value]);
+            return value;
+          };
+        },
+      );
       (v as any)._shadow.set("display", vd);
+      if (inputs.includes("view")) {
+        const vv = new v.constructor(2, v._module, null, { shadow: {} });
+        vv._shadow.set("display", vd);
+        vv.define(
+          ["display"],
+          (display) => (v) => Generators.input(display(v)),
+        );
+        (v as any)._shadow.set("view", vv);
+      }
     }
     // if (inputs.includes("display") || inputs.includes("view")) {
     //   let displayVersion = -1; // the variable._version of currently-displayed values
@@ -209,8 +255,8 @@ export class FrameworkishNotebook {
   }
 
   undefine(id: string) {
-    this.cellsById.get(id)?.variables.forEach((v) => v.delete());
-    this.cellsById.delete(id);
+    this.variablesById.get(id)?.forEach((v) => v.delete());
+    this.variablesById.delete(id);
     this.notebookStateUP.cellStates[id].$remove();
   }
 }

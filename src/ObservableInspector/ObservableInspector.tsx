@@ -4,11 +4,12 @@ import { Inspector } from "@observablehq/inspector";
 import { memo, useEffect, useState } from "react";
 
 export type ObservableInspectorProps = {
-  value: any;
+  value?: unknown;
+  error?: unknown;
 };
 
 export const ObservableInspector = memo(
-  ({ value }: ObservableInspectorProps) => {
+  ({ value, error }: ObservableInspectorProps) => {
     const [elem, setElem] = useState<HTMLDivElement | null>(null);
     const [inspector, setInspector] = useState<Inspector | null>(null);
 
@@ -18,9 +19,13 @@ export const ObservableInspector = memo(
 
     useEffect(() => {
       if (inspector) {
-        inspector.fulfilled(value);
+        if (error) {
+          inspector.rejected(error);
+        } else {
+          inspector.fulfilled(value);
+        }
       }
-    }, [inspector, value]);
+    }, [error, inspector, value]);
 
     return (
       <>
