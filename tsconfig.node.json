@@ -5,7 +5,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "rootDir": "src-cli",
+    "outDir": "bin",
+    "esModuleInterop": true,
   },
-  "include": ["vite.config.ts"]
+  "include": ["src-cli/**/*.ts"],
 }

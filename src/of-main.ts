@@ -4,10 +4,12 @@ import { Library } from "@observablehq/stdlib";
 import * as React from "react";
 import { ChangeableValue, ChangingValue } from "./ChangingValue";
 import { codeCells } from "./code-cells";
+import { dark } from "./of/client/stdlib/generators";
 import { transformJavaScript } from "./of/javascript/module2";
 import { JavaScriptNode, parseJavaScript } from "./of/javascript/parse";
 import { Sourcemap } from "./of/sourcemap";
 import { assignIds, compileExpression } from "./shared";
+
 // @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
 
@@ -17,6 +19,7 @@ export const runtime = new Runtime({
   React,
   // version in Library is out of date
   Mutable: () => Mutable,
+  dark,
 });
 
 const Generators = library.Generators;
@@ -72,6 +75,8 @@ export class FrameworkishNotebook {
   );
 
   async setNotebookCode(code: string) {
+    // remove lines beginning with `///` (triple-slash comments)
+    code = code.replace(/^\/\/\/.*$/gm, "");
     const codes = codeCells(code).map((cell) => cell.code);
     const codesWithIds = assignIds(codes);
 
@@ -82,13 +87,14 @@ export class FrameworkishNotebook {
     // TODO: we do all the async stuff ahead of time so that there's
     // no async gap with undefining and defining vars; this seems
     // inelegant to me
-    const transformedPromises = addedIds.map((id) => {
-      const cell = codesWithIds.find((c) => c.id === id)!;
-      return transformJavaScript(cell.code, "tsx", "SOMEPATH");
-    });
-    const transformedResults = await Promise.allSettled(transformedPromises);
-    const transformedResultsById = Object.fromEntries(
-      transformedResults.map((r, i) => [addedIds[i], r]),
+    const transformedPromisesById = Object.fromEntries(
+      addedIds.map((id) => {
+        const cell = codesWithIds.find((c) => c.id === id)!;
+        return [id, transformJavaScript(cell.code, "tsx", "SOMEPATH")];
+      }),
+    );
+    const transformedResultsById = await allSettledObject(
+      transformedPromisesById,
     );
 
     // and we do this after the async stuff
@@ -115,11 +121,7 @@ export class FrameworkishNotebook {
             markdown,
           });
         } else {
-          const transformedResult = transformedResultsById[id];
-          if (transformedResult.status === "rejected") {
-            throw transformedResult.reason;
-          }
-          const transformed = transformedResult.value;
+          const transformed = getResultValue(transformedResultsById[id]);
           // to accommodate trailing semicolons added by prettier...
           const trimmed = transformed.trimEnd().replace(/;$/, "");
           const parsed = parseJavaScript(trimmed, { path: "SOMEPATH" });
@@ -173,38 +175,36 @@ export class FrameworkishNotebook {
     // TODO: { pending, rejected }
     if (inputs.includes("display") || inputs.includes("view")) {
       let displayVersion = -1; // the variable._version of currently-displayed values
-      const vd = new v.constructor(2, v._module);
-      vd.define(
-        inputs.filter((i) => i !== "display" && i !== "view"),
-        () => {
-          // TODO: IDK why OF has those inputs above and then defines
-          // `version` here, rather than defining `version` inside
-          // the body of `display`?
-          let version = (v as any)._version; // capture version on input change
-          return (value: unknown) => {
-            console.log("display", id, version, displayVersion);
-            if (version < displayVersion) {
-              throw new Error("stale display");
-            } else if (version > displayVersion) {
-              this.notebookStateUP.cellStates[id]
-                .$as<CellState & { type: "code" }>()
-                .displays.$set([]);
-            }
-            displayVersion = version;
-            this.notebookStateUP.cellStates[id]
-              .$as<CellState & { type: "code" }>()
-              .displays.$((old) => [...old, value]);
-            return value;
-          };
-        },
-      );
+
+      const Variable = getVariableConstructor(v);
+      const vd = new Variable(2, v._module);
+      vd.define([], () => (value: unknown) => {
+        // TODO: I simplified this from the OF code, set inputs
+        // to [] and get version in the call to display; is that
+        // ok?
+        let version = v._version; // capture version on input change
+        if (version < displayVersion) {
+          throw new Error("stale display");
+        } else if (version > displayVersion) {
+          this.notebookStateUP.cellStates[id]
+            .$as<CellState & { type: "code" }>()
+            .displays.$set([]);
+        }
+        displayVersion = version;
+        this.notebookStateUP.cellStates[id]
+          .$as<CellState & { type: "code" }>()
+          .displays.$((old) => [...old, value]);
+        return value;
+      });
       (v as any)._shadow.set("display", vd);
       if (inputs.includes("view")) {
-        const vv = new v.constructor(2, v._module, null, { shadow: {} });
+        const Variable = getVariableConstructor(v);
+        const vv = new Variable(2, v._module, null, { shadow: {} });
         vv._shadow.set("display", vd);
         vv.define(
           ["display"],
-          (display) => (v) => Generators.input(display(v)),
+          (display: (v: unknown) => void) => (v: unknown) =>
+            Generators.input(display(v)),
         );
         (v as any)._shadow.set("view", vv);
       }
@@ -311,4 +311,23 @@ export function transpileToDef(node: JavaScriptNode) {
     inputs,
     outputs,
   };
+}
+
+function getVariableConstructor(v: Variable) {
+  return v.constructor as typeof Variable;
+}
+
+function getResultValue<T>(result: PromiseSettledResult<T>) {
+  if (result.status === "rejected") {
+    throw result.reason;
+  }
+  return result.value;
+}
+
+function allSettledObject<T>(promises: { [id: string]: Promise<T> }) {
+  return Promise.allSettled(Object.values(promises)).then((results) =>
+    Object.fromEntries(
+      Object.keys(promises).map((key, i) => [key, results[i]]),
+    ),
+  );
 }

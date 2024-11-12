@@ -8,12 +8,7 @@ module.exports = {
       typescript: true,
     },
   },
-  ignorePatterns: [
-    "dist",
-    "lib",
-    "/src/client/shadcn",
-    "/src/client/tailwind-styled-component",
-  ],
+  ignorePatterns: ["dist", "lib"],
   rules: {
     "@typescript-eslint/no-unused-vars": [
       "warn",

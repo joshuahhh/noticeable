@@ -1,8 +1,9 @@
 import * as esbuild from "esbuild-wasm";
+import esbuildWasmURL from "../../../node_modules/esbuild-wasm/esbuild.wasm?url";
 
 // TODO idk about all this initialization
 const esbuildInitalized = esbuild.initialize({
-  wasmURL: "./node_modules/esbuild-wasm/esbuild.wasm",
+  wasmURL: esbuildWasmURL,
 });
 
 export async function transformJavaScript(

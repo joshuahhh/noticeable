@@ -1,14 +1,19 @@
 {
-  "name": "plain-text-notebook-thing",
+  "name": "noticeable",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "notice": "./bin/notice.js"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "test:watch": "vitest watch",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "build-cli": "tsc --project tsconfig.node.json",
+    "build-cli:watch": "tsc --watch --project tsconfig.node.json"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.2",
@@ -19,9 +24,11 @@
     "@observablehq/framework": "^1.12.0",
     "@observablehq/runtime": "^6.0.0",
     "@observablehq/stdlib": "^5.8.8",
+    "chokidar": "^4.0.1",
     "codemirror": "^6.0.1",
     "crypto-js": "^4.2.0",
     "esbuild-wasm": "^0.24.0",
+    "express": "^4.21.1",
     "highlight.js": "^11.10.0",
     "idb-keyval": "^6.2.1",
     "markdown-it": "^14.1.0",
@@ -30,16 +37,21 @@
     "react-inspector": "^6.0.2",
     "react-merge-refs": "^2.1.1",
     "react-router-dom": "6.22.1",
-    "react-select": "^5.8.2"
+    "react-select": "^5.8.2",
+    "ws": "^8.18.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "1.7.0",
-    "@tailwindcss/typography": "0.5.12",
+    "@types/chokidar": "^2.1.7",
     "@types/crypto-js": "^4.2.2",
+    "@types/express": "^5.0.0",
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@types/wicg-file-system-access": "^2023.10.5",
+    "@types/ws": "^8.5.13",
+    "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react": "^4.2.1",
@@ -50,11 +62,10 @@
     "eslint-import-resolver-typescript": "3.6.1",
     "prettier": "^3.3.3",
     "prettier-plugin-organize-imports": "^4.0.0",
-    "tailwindcss": "3.4.3",
-    "tailwindcss-scoped-preflight": "^3.4.9",
     "typescript": "^5.2.2",
     "vite": "^5.1.0",
     "vite-plugin-node-polyfills": "^0.22.0",
+    "vite-plugin-wasm": "^3.3.0",
     "vitest": "2.1.4"
   }
 }

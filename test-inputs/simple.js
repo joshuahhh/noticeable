@@ -1,7 +1,7 @@
 // # My test notebook
 // I hope you like it!
 
-3 + 2;
+3 + 10;
 
 const x = view(Inputs.range());
 

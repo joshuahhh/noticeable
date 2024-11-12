@@ -17,9 +17,12 @@ Plot.line(
   { x: "x", y: "y" },
 ).plot();
 
-// jsx
 display(
-  <svg width={width} height={height} style={{ backgroundColor: "#ddd" }}>
+  <svg
+    width={width}
+    height={height}
+    style={{ backgroundColor: dark ? "#333" : "#ddd" }}
+  >
     {/* grid of gray dots */}
     {Array.from({ length: width / spacing }, (_, i) =>
       Array.from({ length: height / spacing }, (_, j) => (
@@ -32,6 +35,7 @@ display(
         />
       )),
     )}
+
     {/* red rectangle at position, draggable */}
     <rect
       x={position[0]}
@@ -199,7 +203,11 @@ function stickyXY(mouse) {
 
 // jsx
 display(
-  <svg width={width} height={height} style={{ backgroundColor: "#ddd" }}>
+  <svg
+    width={width}
+    height={height}
+    style={{ backgroundColor: dark ? "#333" : "#ddd" }}
+  >
     {/* grid of gray dots */}
     {Array.from({ length: width / spacing }, (_, i) =>
       Array.from({ length: height / spacing }, (_, j) => (

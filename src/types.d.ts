@@ -54,21 +54,29 @@ declare module "@observablehq/runtime" {
   }
 
   class Variable {
+    constructor(
+      type: 1 | 2 | 3,
+      module: Module,
+      observer?: Observer | null,
+      options?: VariableOptions,
+    );
+
     define(name: string | null, value: unknown): this;
-    define(
-      inputs: string[],
-      definition: (...inputs: unknown[]) => unknown,
-    ): this;
+    define(inputs: string[], definition: (...inputs: any[]) => unknown): this;
     define(
       name: string | null,
       inputs: string[],
-      definition: (...inputs: unknown[]) => unknown,
+      definition: (...inputs: any[]) => unknown,
     ): this;
 
     import(name: string, module: Module): this;
     import(name: string, alias: string, module: Module): this;
 
     delete(): void;
+
+    _module: Module;
+    _shadow: Map<string, Variable>;
+    _version: number;
   }
 
   type Observer = Partial<{
