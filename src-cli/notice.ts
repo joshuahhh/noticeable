@@ -36,9 +36,7 @@ async function main() {
   if (argv.notebook) {
     console.log(`Serving ${argv.notebook} on http://localhost:${PORT}/#/cli`);
   } else {
-    console.log(
-      `Waiting to load a notebook on http://localhost:${PORT}/#/file-picker`,
-    );
+    console.log(`Waiting to load a notebook on http://localhost:${PORT}/`);
   }
 }
 

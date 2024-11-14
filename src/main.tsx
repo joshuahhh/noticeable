@@ -8,8 +8,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HashRouter>
       <Routes>
+        <Route path="/" element={<FromFilePicker />} />
         <Route path="/cli" element={<FromCLI />} />
-        <Route path="/file-picker" element={<FromFilePicker />} />
       </Routes>
     </HashRouter>
   </React.StrictMode>,
