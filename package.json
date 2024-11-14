@@ -1,11 +1,16 @@
 {
   "name": "noticeable",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "bin": {
     "notice": "./bin/notice.js"
   },
+  "main": "lib/lib.js",
+  "files": [
+    "lib",
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,19 +18,19 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "build-cli": "tsc --project tsconfig.node.json",
-    "build-cli:watch": "tsc --watch --project tsconfig.node.json"
+    "build-cli:watch": "tsc --watch --project tsconfig.node.json",
+    "build-lib": "tsc --project tsconfig.lib.json",
+    "prepublish": "npm run build && npm run build-cli && npm run build-lib"
   },
   "dependencies": {
-    "@codemirror/lang-javascript": "^6.2.2",
-    "@codemirror/state": "^6.4.1",
-    "@codemirror/view": "^6.34.2",
     "@engraft/shared": "^0.0.8",
     "@engraft/update-proxy": "^0.0.8",
-    "@observablehq/framework": "^1.12.0",
+    "@observablehq/inspector": "^5.0.1",
     "@observablehq/runtime": "^6.0.0",
     "@observablehq/stdlib": "^5.8.8",
+    "acorn": "^8.14.0",
+    "acorn-walk": "^8.3.4",
     "chokidar": "^4.0.1",
-    "codemirror": "^6.0.1",
     "crypto-js": "^4.2.0",
     "d3-dsv": "^3.0.1",
     "esbuild-wasm": "^0.24.0",
@@ -36,10 +41,7 @@
     "markdown-it": "^14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-inspector": "^6.0.2",
-    "react-merge-refs": "^2.1.1",
     "react-router-dom": "6.22.1",
-    "react-select": "^5.8.2",
     "ws": "^8.18.0",
     "yargs": "^17.7.2"
   },
