@@ -1,6 +1,6 @@
 {
   "name": "noticeable",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "bin": {
     "notice": "./bin/notice.js"
@@ -19,7 +19,7 @@
     "test:ui": "vitest --ui",
     "build-cli": "tsc --project tsconfig.node.json",
     "build-cli:watch": "tsc --watch --project tsconfig.node.json",
-    "build-lib": "tsc --project tsconfig.lib.json && copyfiles -u 1 \"src/**/*.{js,css}\" lib",
+    "build-lib": "rm -rf lib && tsc --project tsconfig.lib.json && copyfiles -u 1 \"src/**/*.{js,css}\" lib",
     "prepublish": "npm run build && npm run build-cli && npm run build-lib"
   },
   "dependencies": {
