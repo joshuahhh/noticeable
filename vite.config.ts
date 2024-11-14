@@ -8,7 +8,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // TODO: These are acquired at runtime from the browser
-      external: [/npm:.*/, /observablehq:.*/],
+      // TODO: disabling these for now cuz they make lib users unhappy
+      // external: [/npm:.*/, /observablehq:.*/],
     },
   },
 });

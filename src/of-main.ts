@@ -11,8 +11,6 @@ import { Sourcemap } from "./of/sourcemap";
 import { assignIds, compileExpression } from "./shared";
 
 // @ts-ignore
-import { FileAttachment } from "./of/client/stdlib/fileAttachment.js";
-// @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
 
 const library = new Library();
@@ -21,7 +19,6 @@ export const runtime = new Runtime({
   React,
   // version in Library is out of date
   Mutable: () => Mutable,
-  FileAttachment: () => FileAttachment,
   dark,
 });
 

@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild-wasm";
-import esbuildWasmURL from "../../../node_modules/esbuild-wasm/esbuild.wasm?url";
+import esbuildWasmURL from "esbuild-wasm/esbuild.wasm?url";
 
 // TODO idk about all this initialization
 const esbuildInitalized = esbuild.initialize({

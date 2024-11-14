@@ -6,8 +6,8 @@ import { Fragment, isValidElement, memo, useEffect, useRef } from "react";
 import { useChangingValue } from "./ChangingValue";
 import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
 import { CellState, FrameworkishNotebook } from "./of-main";
-import "./of/client/stdlib/inputs.css";
-import "./theme-air,near-midnight.css";
+import inputsCss from "./of/client/stdlib/inputs.css?raw";
+import themeCss from "./theme-air,near-midnight.css?raw";
 
 hljs.registerLanguage("tsx", hljsTypescript);
 
@@ -53,57 +53,55 @@ export const Notebook = memo(
 
     return (
       <div id="observablehq-main" className="observablehq">
-        <div className="w-full no-twp">
-          {notebookState.cells.map(({ id, code }) => {
-            const state = notebookState.cellStates[id] as CellState | undefined;
-            if (state?.type === "markdown") {
-              return (
-                <div
-                  key={id}
-                  dangerouslySetInnerHTML={{
-                    __html: md.render(state.markdown),
-                  }}
-                />
-              );
-            } else {
-              return (
-                <Fragment key={id}>
-                  {debugMode && (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex flex-row gap-4">
-                        <div>{id}</div>
-                        <div>
-                          <ObservableInspector value={state} />
-                        </div>
+        <style>{themeCss}</style>
+        <style>{inputsCss}</style>
+        {notebookState.cells.map(({ id, code }) => {
+          const state = notebookState.cellStates[id] as CellState | undefined;
+          if (state?.type === "markdown") {
+            return (
+              <div
+                key={id}
+                dangerouslySetInnerHTML={{
+                  __html: md.render(state.markdown),
+                }}
+              />
+            );
+          } else {
+            return (
+              <Fragment key={id}>
+                {debugMode && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-row gap-4">
+                      <div>{id}</div>
+                      <div>
+                        <ObservableInspector value={state} />
                       </div>
-                      {state && <pre>{state.transpiled}</pre>}
                     </div>
-                  )}
-                  <div className="observablehq-pre-container">
-                    <pre
-                      dangerouslySetInnerHTML={{
-                        __html: hljs.highlight(code, { language: "tsx" }).value,
-                      }}
-                    />
+                    {state && <pre>{state.transpiled}</pre>}
                   </div>
-                  {state && (
-                    <>
-                      {state.variableState.type === "rejected" && (
-                        <ObservableInspector
-                          error={state.variableState.error}
-                        />
-                      )}
-                      {state.displays.map((display, i) => (
-                        // TODO: show old display while new one is pending
-                        <Display key={i} value={display} />
-                      ))}
-                    </>
-                  )}
-                </Fragment>
-              );
-            }
-          })}
-        </div>
+                )}
+                <div className="observablehq-pre-container">
+                  <pre
+                    dangerouslySetInnerHTML={{
+                      __html: hljs.highlight(code, { language: "tsx" }).value,
+                    }}
+                  />
+                </div>
+                {state && (
+                  <>
+                    {state.variableState.type === "rejected" && (
+                      <ObservableInspector error={state.variableState.error} />
+                    )}
+                    {state.displays.map((display, i) => (
+                      // TODO: show old display while new one is pending
+                      <Display key={i} value={display} />
+                    ))}
+                  </>
+                )}
+              </Fragment>
+            );
+          }
+        })}
       </div>
     );
   },
