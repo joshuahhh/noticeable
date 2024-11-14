@@ -1,5 +1,6 @@
 import { DOM } from "@engraft/shared/lib/DOM";
-import hljs from "highlight.js";
+import hljs from "highlight.js/lib/core";
+import hljsTypescript from "highlight.js/lib/languages/typescript";
 import MarkdownIt from "markdown-it";
 import { Fragment, isValidElement, memo, useEffect, useRef } from "react";
 import { useChangingValue } from "./ChangingValue";
@@ -7,6 +8,8 @@ import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
 import { CellState, FrameworkishNotebook } from "./of-main";
 import "./of/client/stdlib/inputs.css";
 import "./theme-air,near-midnight.css";
+
+hljs.registerLanguage("tsx", hljsTypescript);
 
 export function createMarkdownIt({
   markdownIt,

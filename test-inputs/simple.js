@@ -1,9 +1,11 @@
 // # My test notebook
 // I hope you like it!
 
-3 + 10;
+const x = view(Inputs.range([0, 50]));
 
-const x = view(Inputs.range());
+<svg width="100" height="100">
+  <circle cx="50" cy="50" r={x} fill="red" />
+</svg>;
 
 // now let's loop!
 

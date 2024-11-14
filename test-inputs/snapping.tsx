@@ -1,6 +1,6 @@
 /// <reference path="./types.ts" />
 
-// # snappy grid without dead spots
+// # snappy grid without inactive spots
 
 // this slider controls the size of the snapping attractor... at 0,
 // there's no snapping. at 0.5, it's all snapping all the time.
@@ -67,7 +67,6 @@ display(
 const spacing = 40;
 const width = 800;
 const height = 1000;
-
 const position = Mutable([100, 100]);
 const setPosition = (value) => (position.value = value);
 

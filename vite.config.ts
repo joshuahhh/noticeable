@@ -5,4 +5,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      // TODO: These are acquired at runtime from the browser
+      external: [/npm:.*/, /observablehq:.*/],
+    },
+  },
 });

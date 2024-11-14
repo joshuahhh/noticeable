@@ -2,36 +2,20 @@ import * as IDBKV from "idb-keyval";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Notebook } from "./Notebook";
 import useInterval from "./useInterval";
-import { useNDJSONWS } from "./useNDJSONWS";
 
 // note that @types/wicg-file-system-access must be installed for
 // window.showOpenFilePicker to be well-typed; there doesn't seem to
 // be a way to enforce this :/
 
-// TODO: copy-paste-sync
-type Message = { type: "code-update"; code: string };
-
-export const Files = memo(() => {
-  // const [fileHandle, setFileHandle] = useState<FileSystemFileHandle>();
-  // const code = useFileContents(fileHandle) || "";
+export const FromFilePicker = memo(() => {
+  const [fileHandle, setFileHandle] = useState<FileSystemFileHandle>();
+  const code = useFileContents(fileHandle) || "";
   const [debugMode, setDebugMode] = useState(false);
-
-  const [code, setCode] = useState<string>("");
-
-  useNDJSONWS(
-    "/",
-    useCallback((message: Message) => {
-      if (message.type === "code-update") {
-        setCode(message.code);
-      }
-    }, []),
-  );
 
   return (
     <div id="observablehq-center">
       <div className="flex flex-row gap-12">
-        {/* <FileSelector fileHandle={fileHandle} setFileHandle={setFileHandle} /> */}
-        {/* checkbox for debug mode */}
+        <FileSelector fileHandle={fileHandle} setFileHandle={setFileHandle} />
         <label>
           <input
             type="checkbox"
