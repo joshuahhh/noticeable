@@ -40,8 +40,18 @@ export function createMarkdownIt({
 const md = createMarkdownIt();
 
 export const Notebook = memo(
-  ({ code, debugMode }: { code: string; debugMode?: boolean }) => {
-    const nbRef = useRef(new FrameworkishNotebook());
+  ({
+    code,
+    debugMode,
+    builtins,
+    global,
+  }: {
+    code: string;
+    debugMode?: boolean;
+    builtins?: any;
+    global?: any;
+  }) => {
+    const nbRef = useRef(new FrameworkishNotebook(builtins, global));
 
     const notebookState = useChangingValue(
       nbRef.current.notebookStateChangingValue,

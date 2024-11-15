@@ -12,6 +12,7 @@
     "bin"
   ],
   "scripts": {
+    "preinstall": "npx only-allow yarn",
     "dev": "vite",
     "build": "vite build",
     "test:watch": "vitest watch",
@@ -20,7 +21,7 @@
     "build-cli": "tsc --project tsconfig.node.json",
     "build-cli:watch": "tsc --watch --project tsconfig.node.json",
     "build-lib": "rm -rf lib && tsc --project tsconfig.lib.json && copyfiles -u 1 \"src/**/*.{js,css}\" lib",
-    "prepublish": "npm run build && npm run build-cli && npm run build-lib"
+    "prepublishOnly": "npm run build && npm run build-cli && npm run build-lib"
   },
   "dependencies": {
     "@engraft/shared": "^0.0.8",

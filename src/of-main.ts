@@ -1,5 +1,5 @@
 import { UpdateProxy, updateProxy } from "@engraft/update-proxy";
-import { Runtime, Variable } from "@observablehq/runtime";
+import { Module, Runtime, Variable } from "@observablehq/runtime";
 import { Library } from "@observablehq/stdlib";
 import * as React from "react";
 import { ChangeableValue, ChangingValue } from "./ChangingValue";
@@ -13,14 +13,13 @@ import { assignIds, compileExpression } from "./shared";
 // @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
 
-const library = new Library();
-export const runtime = new Runtime({
-  ...library,
+const library = {
+  ...new Library(),
   React,
   // version in Library is out of date
   Mutable: () => Mutable,
   dark,
-});
+};
 
 const Generators = library.Generators;
 
@@ -58,9 +57,20 @@ export type NotebookState = {
 
 export class FrameworkishNotebook {
   // internal stuff
-  main = runtime.module();
+  main: Module;
   variablesById = new Map<string, Variable[]>(); // for cleanup
   oldCodes = new Map<string, string>();
+
+  constructor(builtins: any = {}, global?: (name: string) => unknown) {
+    const runtime = new Runtime(
+      {
+        ...library,
+        ...builtins,
+      },
+      global as any,
+    );
+    this.main = runtime.module();
+  }
 
   // external stuff
   private notebookState: ChangeableValue<NotebookState> = new ChangeableValue({
