@@ -4,6 +4,7 @@ import hljsTypescript from "highlight.js/lib/languages/typescript";
 import MarkdownIt from "markdown-it";
 import { Fragment, isValidElement, memo, useEffect, useRef } from "react";
 import { useChangingValue } from "./ChangingValue";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
 import { CellState, FrameworkishNotebook } from "./of-main";
 import inputsCss from "./of/client/stdlib/inputs.css?raw";
@@ -81,6 +82,7 @@ export const Notebook = memo(
               <Fragment key={id}>
                 {debugMode && (
                   <div className="flex flex-col gap-4">
+                    <hr />
                     <div className="flex flex-row gap-4">
                       <div>{id}</div>
                       <div>
@@ -121,7 +123,7 @@ function Display({ value }: { value: unknown }) {
   if (isNode(value)) {
     return <DOM element={value as any} />;
   } else if (isValidElement(value)) {
-    return value;
+    return <ErrorBoundary>{value}</ErrorBoundary>;
   } else {
     return <ObservableInspector value={value} />;
   }

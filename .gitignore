@@ -13,6 +13,7 @@ dist-ssr
 *.local
 bin
 lib
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
