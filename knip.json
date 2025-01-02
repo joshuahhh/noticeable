@@ -3,7 +3,7 @@
   "entry": [
     "src/main.tsx",
     "src/lib.ts",
-    "src-cli/notice.ts"
+    "src-cli/noticeable.ts"
   ],
   "project": [
     "src/**/*.ts",

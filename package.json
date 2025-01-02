@@ -2,9 +2,7 @@
   "name": "noticeable",
   "version": "0.0.8",
   "type": "module",
-  "bin": {
-    "notice": "./bin/notice.js"
-  },
+  "bin": "./bin/noticeable.js",
   "main": "lib/lib.js",
   "files": [
     "lib",
