@@ -121,6 +121,14 @@ export const NotebookCell = memo(
               dangerouslySetInnerHTML={{
                 __html: hljs.highlight(code, { language: "tsx" }).value,
               }}
+              style={{
+                boxShadow:
+                  !state || state.variableState.type === "pending"
+                    ? "-2px 0 0 0 #FFD700"
+                    : state.variableState.type === "rejected"
+                      ? "-4px 0 0 0 #F43F5E"
+                      : "-1px 0 0 0 #008C76",
+              }}
             />
           </div>
           {state && (
