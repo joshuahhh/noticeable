@@ -2,12 +2,13 @@ import { DOM } from "@engraft/shared/lib/DOM";
 import hljs from "highlight.js/lib/core";
 import hljsTypescript from "highlight.js/lib/languages/typescript";
 import MarkdownIt from "markdown-it";
-import { Fragment, isValidElement, memo, useEffect, useRef } from "react";
+import { isValidElement, memo, useEffect, useRef } from "react";
 import { useChangingValue } from "./ChangingValue";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
 import { Cell, CellState, FrameworkishNotebook } from "./of-main";
 import inputsCss from "./of/client/stdlib/inputs.css?raw";
+import overridesCss from "./overrides.css?raw";
 import themeCss from "./theme-air,near-midnight.css?raw";
 
 hljs.registerLanguage("tsx", hljsTypescript);
@@ -66,6 +67,7 @@ export const Notebook = memo(
       <div id="observablehq-main" className="observablehq">
         <style>{themeCss}</style>
         <style>{inputsCss}</style>
+        <style>{overridesCss}</style>
         {notebookState.cells.map((cell) => {
           return (
             <NotebookCell
@@ -99,15 +101,31 @@ export const NotebookCell = memo(
           dangerouslySetInnerHTML={{
             __html: md.render(state.markdown),
           }}
+          style={{
+            marginBottom: 20,
+          }}
         />
       );
     } else {
       return (
-        <Fragment key={id}>
+        <div
+          key={id}
+          style={{
+            marginBottom: 20,
+            paddingLeft: 12,
+            marginLeft: -12,
+            boxShadow:
+              !state || state.variableState.type === "pending"
+                ? "-4px 0 0 0 #FFD70088"
+                : state.variableState.type === "rejected"
+                  ? "-4px 0 0 0 #F43F5E88"
+                  : "-4px 0 0 0 #008C7688",
+          }}
+        >
           {debugMode && (
-            <div className="flex flex-col gap-4">
-              <hr />
-              <div className="flex flex-row gap-4">
+            <div>
+              <hr style={{ padding: 8, margin: "0 -16px" }} />
+              <div style={{ display: "flex", gap: 16 }}>
                 <div>{id}</div>
                 <div>
                   <ObservableInspector value={state} />
@@ -116,23 +134,25 @@ export const NotebookCell = memo(
               {state && <pre>{state.transpiled}</pre>}
             </div>
           )}
-          <div className="observablehq-pre-container">
+          <div className="observablehq-pre-container" style={{ opacity: 0.3 }}>
             <pre
               dangerouslySetInnerHTML={{
                 __html: hljs.highlight(code, { language: "tsx" }).value,
               }}
               style={{
-                boxShadow:
-                  !state || state.variableState.type === "pending"
-                    ? "-2px 0 0 0 #FFD700"
-                    : state.variableState.type === "rejected"
-                      ? "-4px 0 0 0 #F43F5E"
-                      : "-1px 0 0 0 #008C76",
+                background: "initial",
               }}
             />
           </div>
           {state && (
-            <>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
               {state.variableState.type === "rejected" && (
                 <ObservableInspector error={state.variableState.error} />
               )}
@@ -140,9 +160,17 @@ export const NotebookCell = memo(
                 // TODO: show old display while new one is pending
                 <Display key={i} value={display} />
               ))}
-            </>
+              {Object.entries(state.outputs).map(([name, value]) => (
+                <div key={name} style={{ display: "flex", gap: 8 }}>
+                  <code style={{ whiteSpace: "nowrap", marginTop: 3 }}>
+                    {name} ={" "}
+                  </code>{" "}
+                  <Display value={value} />
+                </div>
+              ))}
+            </div>
           )}
-        </Fragment>
+        </div>
       );
     }
   },

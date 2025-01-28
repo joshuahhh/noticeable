@@ -41,6 +41,7 @@ export type CellState =
       type: "code";
       variableState: ObservableState;
       displays: unknown[];
+      outputs: { [name: string]: unknown };
       transpiled?: string;
     }
   | {
@@ -119,11 +120,6 @@ export class FrameworkishNotebook {
     }
 
     for (const id of addedIds) {
-      this.notebookStateUP.cellStates[id].$set({
-        type: "code",
-        variableState: { type: "pending" },
-        displays: [],
-      });
       try {
         const cell = codesWithIds.find((c) => c.id === id)!;
         const lines = cell.code.split("\n");
@@ -135,12 +131,21 @@ export class FrameworkishNotebook {
             markdown,
           });
         } else {
+          const cellStateUP = this.notebookStateUP.cellStates[id].$as<
+            CellState & { type: "code" }
+          >();
+          cellStateUP.$set({
+            type: "code",
+            variableState: { type: "pending" },
+            displays: [],
+            outputs: {},
+          });
           const transformed = getResultValue(transformedResultsById[id]);
           // to accommodate trailing semicolons added by prettier...
           const trimmed = transformed.trimEnd().replace(/;$/, "");
           const parsed = parseJavaScript(trimmed, { path: "SOMEPATH" });
           const transpiled = transpileToDef(parsed);
-          this.notebookStateUP.cellStates[id].transpiled.$set(transpiled.code);
+          cellStateUP.transpiled.$set(transpiled.code);
           const compiled = compileExpression(transpiled.code) as any;
           this.define({
             id,
@@ -222,6 +227,35 @@ export class FrameworkishNotebook {
         );
         (v as any)._shadow.set("view", vv);
       }
+    }
+    if (inputs.includes("report_outputs")) {
+      // TODO: I'm too lazy to rewrite source code right now so we're
+      // not logging outputs immediately after their definitions,
+      // just at the end of the cell. Not ideal for async cells.
+
+      let displayVersion = -1; // the variable._version of currently-displayed values
+
+      const Variable = getVariableConstructor(v);
+      const vd = new Variable(2, v._module);
+      vd.define([], () => (value: unknown) => {
+        // TODO: I simplified this from the OF code, set inputs
+        // to [] and get version in the call to display; is that
+        // ok?
+        let version = v._version; // capture version on input change
+        if (version < displayVersion) {
+          throw new Error("stale display");
+        } else if (version > displayVersion) {
+          this.notebookStateUP.cellStates[id].outputs
+            .$as<CellState & { type: "code" }>()
+            .outputs.$set({});
+        }
+        displayVersion = version;
+        this.notebookStateUP.cellStates[id]
+          .$as<CellState & { type: "code" }>()
+          .outputs.$set(value as { [name: string]: unknown });
+        return value;
+      });
+      (v as any)._shadow.set("report_outputs", vd);
     }
     // if (inputs.includes("display") || inputs.includes("view")) {
     //   let displayVersion = -1; // the variable._version of currently-displayed values
@@ -309,6 +343,9 @@ export function transpileToDef(node: JavaScriptNode) {
     inputs.push("display");
     async = true;
   }
+  if (outputs.length) {
+    inputs.push("report_outputs");
+  }
   const output = new Sourcemap(node.input).trim();
   if (display) {
     output
@@ -317,6 +354,7 @@ export function transpileToDef(node: JavaScriptNode) {
   }
   output.insertLeft(0, `${async ? "async " : ""}(${inputs}) => {\n`);
   if (outputs.length) {
+    output.insertRight(node.input.length, `\nreport_outputs({${outputs}});`);
     output.insertRight(node.input.length, `\nreturn {${outputs}};`);
   }
   output.insertRight(node.input.length, "\n}\n");
