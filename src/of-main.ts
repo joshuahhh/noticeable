@@ -51,8 +51,12 @@ export type CellState =
 // this is the information returned by the FrameworkishNotebook to
 // its client via the setNotebookState callback
 export type NotebookState = {
-  cells: { id: string; code: string }[];
+  cells: Cell[];
   cellStates: { [id: string]: CellState };
+};
+export type Cell = {
+  id: string;
+  code: string;
 };
 
 export class FrameworkishNotebook {
