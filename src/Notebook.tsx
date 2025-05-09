@@ -6,7 +6,7 @@ import { isValidElement, memo, useEffect, useRef } from "react";
 import { useChangingValue } from "./ChangingValue";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ObservableInspector } from "./ObservableInspector/ObservableInspector";
-import { Cell, CellState, FrameworkishNotebook } from "./of-main";
+import { Cell, CellState, NoticeableNotebook } from "./of-main";
 import inputsCss from "./of/client/stdlib/inputs.css?raw";
 import overridesCss from "./overrides.css?raw";
 import themeCss from "./theme-air,near-midnight.css?raw";
@@ -53,7 +53,7 @@ export const Notebook = memo(
     builtins?: any;
     global?: any;
   }) => {
-    const nbRef = useRef(new FrameworkishNotebook(builtins, global));
+    const nbRef = useRef(new NoticeableNotebook(builtins, global));
 
     const notebookState = useChangingValue(
       nbRef.current.notebookStateChangingValue,

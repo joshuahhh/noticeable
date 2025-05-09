@@ -23,7 +23,7 @@ const library = {
 
 const Generators = library.Generators;
 
-type FrameworkishNotebookCell = {
+type NoticeableNotebookCell = {
   id: string;
   mode?: "inline" | "block" | "jsx";
   inputs?: string[];
@@ -49,7 +49,7 @@ export type CellState =
       markdown: string;
     };
 
-// this is the information returned by the FrameworkishNotebook to
+// this is the information returned by the NoticeableNotebook to
 // its client via the setNotebookState callback
 export type NotebookState = {
   cells: Cell[];
@@ -60,7 +60,7 @@ export type Cell = {
   code: string;
 };
 
-export class FrameworkishNotebook {
+export class NoticeableNotebook {
   // internal stuff
   main: Module;
   variablesById = new Map<string, Variable[]>(); // for cleanup
@@ -169,7 +169,7 @@ export class FrameworkishNotebook {
     this.notebookStateUP.cellStates[id].variableState.$set(state);
   }
 
-  define(cell: FrameworkishNotebookCell) {
+  define(cell: NoticeableNotebookCell) {
     const { id, inputs = [], outputs = [], body } = cell;
     const variables: Variable[] = [];
     this.variablesById.set(id, variables);
