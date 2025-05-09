@@ -1,6 +1,7 @@
 import { UpdateProxy, updateProxy } from "@engraft/update-proxy";
 import { Module, Runtime, Variable } from "@observablehq/runtime";
 import { Library } from "@observablehq/stdlib";
+import sha256 from "crypto-js/sha256";
 import * as React from "react";
 import { ChangeableValue, ChangingValue } from "./ChangingValue";
 import { codeCells } from "./code-cells";
@@ -8,10 +9,40 @@ import { dark } from "./of/client/stdlib/generators";
 import { transformJavaScript } from "./of/javascript/module2";
 import { JavaScriptNode, parseJavaScript } from "./of/javascript/parse";
 import { Sourcemap } from "./of/sourcemap";
-import { assignIds, compileExpression } from "./shared";
+import { compileExpression } from "./shared";
 
 // @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
+
+/** Get an ID for a cell of code which tries to be stable if the code
+ * doesn't change, but which has a little count at the end in case
+ * the code is already in use. */
+export function uniqueCodeId(
+  content: string,
+  existingIds: { [id: string]: boolean },
+): string {
+  const hash = sha256(content).toString().slice(0, 8);
+  let id = hash;
+  let count = 1;
+  while (existingIds[id]) {
+    id = `${hash}-${count}`;
+    count++;
+  }
+
+  return id;
+}
+
+/** Given a bunch of cells of code, assigns a unique ID to each. We
+ * try to keep a cell's ID constant if its code doesn't change,
+ * through the power of hashing. */
+export function assignIds(codes: string[]): { id: string; code: string }[] {
+  let existingIds: { [id: string]: boolean } = {};
+  return codes.map((code) => {
+    const id = uniqueCodeId(code, existingIds);
+    existingIds[id] = true;
+    return { id, code };
+  });
+}
 
 const library = {
   ...new Library(),
