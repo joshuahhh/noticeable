@@ -2,9 +2,12 @@ import * as esbuild from "esbuild-wasm";
 import esbuildWasmURL from "esbuild-wasm/esbuild.wasm?url";
 
 // TODO idk about all this initialization
-const esbuildInitalized = esbuild.initialize({
-  wasmURL: esbuildWasmURL,
-});
+const esbuildInitalized =
+  typeof window !== "undefined"
+    ? esbuild.initialize({
+        wasmURL: esbuildWasmURL,
+      })
+    : Promise.resolve();
 
 export async function transformJavaScript(
   source: string,
