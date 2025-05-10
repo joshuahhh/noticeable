@@ -136,7 +136,7 @@ export class NoticeableNotebook {
     const transformedPromisesById = Object.fromEntries(
       addedIds.map((id) => {
         const cell = codesWithIds.find((c) => c.id === id)!;
-        return [id, transformJavaScript(cell.code, "tsx", "SOMEPATH")];
+        return [id, transformJavaScript(cell.code, "SOMEPATH")];
       }),
     );
     const transformedResultsById = await allSettledObject(
