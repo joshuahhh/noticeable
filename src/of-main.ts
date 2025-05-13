@@ -7,12 +7,15 @@ import { ChangeableValue, ChangingValue } from "./ChangingValue";
 import { codeCells } from "./code-cells";
 import { dark } from "./of/client/stdlib/generators";
 import { transformJavaScript } from "./of/javascript/module2";
-import { JavaScriptNode, parseJavaScript } from "./of/javascript/parse";
+import { ParsedJavaScript, parseJavaScript } from "./of/javascript/parse";
 import { Sourcemap } from "./of/sourcemap";
-import { compileExpression } from "./shared";
 
 // @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
+
+export function evalExpr(exprCode: string): unknown {
+  return new Function(`return (${exprCode});`)();
+}
 
 /** Get an ID for a cell of code which tries to be stable if the code
  * doesn't change, but which has a little count at the end in case
@@ -174,10 +177,10 @@ export class NoticeableNotebook {
           const transformed = getResultValue(transformedResultsById[id]);
           // to accommodate trailing semicolons added by prettier...
           const trimmed = transformed.trimEnd().replace(/;$/, "");
-          const parsed = parseJavaScript(trimmed, { path: "SOMEPATH" });
+          const parsed = parseJavaScript(trimmed);
           const transpiled = transpileToDef(parsed);
           cellStateUP.transpiled.$set(transpiled.code);
-          const compiled = compileExpression(transpiled.code) as any;
+          const compiled = evalExpr(transpiled.code) as any;
           this.define({
             id,
             body: compiled,
@@ -359,36 +362,40 @@ function diffCodes(
   return { removedIds, addedIds };
 }
 
-export function transpileToDef(node: JavaScriptNode) {
-  let async = node.async;
+export function transpileToDef(parsed: ParsedJavaScript) {
+  let async = parsed.async;
   const inputs = Array.from(
-    new Set<string>(node.references.map((r) => r.name)),
+    new Set<string>(parsed.references.map((r) => r.name)),
   );
   const outputs = Array.from(
-    new Set<string>(node.declarations?.map((r) => r.name)),
+    new Set<string>(parsed.declarations?.map((r) => r.name)),
   );
-  // "display" here really means "implicit display of an expression"
-  const display =
-    node.expression && !inputs.includes("display") && !inputs.includes("view");
-  if (display) {
+  const isImplicitlyDisplayed =
+    parsed.expression &&
+    !inputs.includes("display") &&
+    !inputs.includes("view");
+  if (isImplicitlyDisplayed) {
     inputs.push("display");
     async = true;
   }
   if (outputs.length) {
     inputs.push("report_outputs");
   }
-  const output = new Sourcemap(node.input).trim();
-  if (display) {
+  const output = new Sourcemap(parsed.originalCode).trim();
+  if (isImplicitlyDisplayed) {
     output
       .insertLeft(0, "display(await(\n")
-      .insertRight(node.input.length, "\n))");
+      .insertRight(parsed.originalCode.length, "\n))");
   }
   output.insertLeft(0, `${async ? "async " : ""}(${inputs}) => {\n`);
   if (outputs.length) {
-    output.insertRight(node.input.length, `\nreport_outputs({${outputs}});`);
-    output.insertRight(node.input.length, `\nreturn {${outputs}};`);
+    output.insertRight(
+      parsed.originalCode.length,
+      `\nreport_outputs({${outputs}});`,
+    );
+    output.insertRight(parsed.originalCode.length, `\nreturn {${outputs}};`);
   }
-  output.insertRight(node.input.length, "\n}\n");
+  output.insertRight(parsed.originalCode.length, "\n}\n");
   return {
     code: String(output),
     inputs,

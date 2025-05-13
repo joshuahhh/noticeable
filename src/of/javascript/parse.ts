@@ -7,36 +7,25 @@ import { findExports } from "./imports.js";
 import { findReferences } from "./references.js";
 import { syntaxError } from "./syntaxError.js";
 
-export interface ParseOptions {
-  /** The path to the source within the source root. */
-  path: string;
-  /** If true, require the input to be an expresssion. */
-  inline?: boolean;
-}
-
 export const acornOptions: Options = {
   ecmaVersion: 13,
   sourceType: "module",
 };
 
-export interface JavaScriptNode {
+export interface ParsedJavaScript {
   body: Program | Expression;
   declarations: Identifier[] | null; // null for expressions that can’t declare top-level variables, a.k.a outputs
   references: Identifier[]; // the unbound references, a.k.a. inputs
   expression: boolean; // is this an expression or a program cell?
   async: boolean; // does this use top-level await?
-  input: string;
+  originalCode: string;
 }
 
 /**
  * Parses the specified JavaScript code block, or if the inline option is true,
  * the specified inline JavaScript expression.
  */
-export function parseJavaScript(
-  input: string,
-  options: ParseOptions,
-): JavaScriptNode {
-  const { inline = false } = options;
+export function parseJavaScript(input: string): ParsedJavaScript {
   let expression = maybeParseExpression(input); // first attempt to parse as expression
   if (expression?.type === "ClassExpression" && expression.id) {
     expression = null;
@@ -44,9 +33,6 @@ export function parseJavaScript(
   if (expression?.type === "FunctionExpression" && expression.id) {
     expression = null;
   } // treat named function as program
-  if (!expression && inline) {
-    throw new SyntaxError("invalid expression");
-  } // inline code must be an expression
   const body = expression ?? parseProgram(input); // otherwise parse as a program
   const exports = findExports(body);
   if (exports.length) {
@@ -60,7 +46,7 @@ export function parseJavaScript(
     references,
     expression: !!expression,
     async: findAwaits(body).length > 0,
-    input,
+    originalCode: input,
   };
 }
 

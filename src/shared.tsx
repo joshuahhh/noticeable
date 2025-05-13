@@ -1,8 +1,3 @@
-export function compileExpression(exprCode: string): unknown {
-  // eslint-disable-next-line no-new-func
-  return new Function(`return (${exprCode});`)();
-}
-
 export type Entries<T> = {
   [K in keyof T]: [K, T[K]];
 }[keyof T][];
