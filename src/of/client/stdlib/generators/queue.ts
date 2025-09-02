@@ -1,5 +1,5 @@
 export async function* queue<T>(
-  initialize: (change: (value: T) => void) => (() => void) | undefined,
+  initialize: (change: (value: T) => void) => (() => void) | void,
 ) {
   let resolve: ((value: T) => void) | null;
   const values: T[] = [];

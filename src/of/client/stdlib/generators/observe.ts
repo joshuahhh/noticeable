@@ -1,7 +1,5 @@
 export async function* observe<T>(
-  initialize: (
-    notify: (value: T) => void,
-  ) => (() => void) | Promise<() => void>,
+  initialize: (notify: (value: T) => void) => (() => void) | void,
 ): AsyncGenerator<T, void, unknown> {
   let resolve: ((value: T) => void) | null;
   let value: T;
@@ -14,9 +12,9 @@ export async function* observe<T>(
     return x;
   });
 
-  if (dispose !== null && typeof dispose !== "function") {
+  if (dispose !== undefined && typeof dispose !== "function") {
     throw new Error(
-      typeof dispose.then === "function"
+      typeof (dispose as any).then === "function"
         ? "async initializers are not supported"
         : "initializer returned something, but not a dispose function",
     );
@@ -29,7 +27,7 @@ export async function* observe<T>(
         : new Promise<T>((_) => (resolve = _));
     }
   } finally {
-    if (dispose !== null) {
+    if (dispose !== undefined) {
       dispose();
     }
   }
