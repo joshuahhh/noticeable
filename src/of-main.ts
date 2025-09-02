@@ -1,4 +1,5 @@
 import { UpdateProxy, updateProxy } from "@engraft/update-proxy";
+import { JavaScriptCell, parseJavaScript } from "@observablehq/notebook-kit";
 import { Module, Runtime, Variable } from "@observablehq/runtime";
 import { Library } from "@observablehq/stdlib";
 import sha256 from "crypto-js/sha256";
@@ -6,10 +7,8 @@ import * as React from "react";
 import { ChangeableValue, ChangingValue } from "./ChangingValue";
 import { codeCells } from "./code-cells";
 import { dark } from "./of/client/stdlib/generators";
-import { transformJavaScript } from "./of/javascript/module2";
-import { ParsedJavaScript, parseJavaScript } from "./of/javascript/parse";
 import { Sourcemap } from "./of/sourcemap";
-
+import { transformJavaScript } from "./transform";
 // @ts-ignore
 import { Mutable } from "./of/client/stdlib/mutable";
 
@@ -177,7 +176,7 @@ export class NoticeableNotebook {
           const transformed = getResultValue(transformedResultsById[id]);
           // to accommodate trailing semicolons added by prettier...
           const trimmed = transformed.trimEnd().replace(/;$/, "");
-          const parsed = parseJavaScript(trimmed);
+          const parsed = { ...parseJavaScript(trimmed), originalCode: trimmed };
           const transpiled = transpileToDef(parsed);
           cellStateUP.transpiled.$set(transpiled.code);
           const compiled = evalExpr(transpiled.code) as any;
@@ -362,7 +361,11 @@ function diffCodes(
   return { removedIds, addedIds };
 }
 
-export function transpileToDef(parsed: ParsedJavaScript) {
+type MyJavaScriptCell = JavaScriptCell & {
+  originalCode: string;
+};
+
+export function transpileToDef(parsed: MyJavaScriptCell) {
   let async = parsed.async;
   const inputs = Array.from(
     new Set<string>(parsed.references.map((r) => r.name)),

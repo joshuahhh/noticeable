@@ -1,6 +1,6 @@
-import {observe} from "./observe.js";
+import { observe } from "./observe.js";
 
-export function input(element) {
+export function input(element: HTMLInputElement | HTMLSelectElement) {
   return observe((change) => {
     const event = eventof(element);
     let value = valueof(element);
@@ -11,7 +11,7 @@ export function input(element) {
   });
 }
 
-function valueof(element) {
+function valueof(element: HTMLInputElement | HTMLSelectElement) {
   switch (element.type) {
     case "range":
     case "number":
@@ -21,15 +21,18 @@ function valueof(element) {
     case "checkbox":
       return element.checked;
     case "file":
-      return element.multiple ? element.files : element.files[0];
+      return element.multiple ? element.files : element.files![0];
     case "select-multiple":
-      return Array.from(element.selectedOptions, (o) => o.value);
+      return Array.from(
+        (element as HTMLSelectElement).selectedOptions,
+        (o) => o.value,
+      );
     default:
       return element.value;
   }
 }
 
-function eventof(element) {
+function eventof(element: HTMLInputElement | HTMLSelectElement) {
   switch (element.type) {
     case "button":
     case "submit":

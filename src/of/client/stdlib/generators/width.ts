@@ -1,4 +1,4 @@
-import {observe} from "./observe.js";
+import { observe } from "./observe";
 
 export function width(target: Element, options?: ResizeObserverOptions) {
   return observe((notify: (width: number) => void) => {
